@@ -1,0 +1,18 @@
+version: "3.7"
+
+services:
+  dummy-service:
+    image: dummy_service:dev
+    tty: true
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        INSTALL_DEV: "true"
+    volumes:
+      - ../src:/workspace/
+    env_file:
+      - ../env_files/.dev.env
+    init: true
+    command: python main.py
+    #command: bash

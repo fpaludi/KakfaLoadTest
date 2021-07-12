@@ -1,0 +1,14 @@
+version: "3.7"
+
+services:
+  dummy-service:
+    image: dummy_service:latest
+    tty: true
+    restart: always
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    env_file:
+      - ../env_files/.dev.env
+    init: true
+    command: python main.py

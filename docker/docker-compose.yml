@@ -1,0 +1,59 @@
+version: "3.7"
+
+x-logging: &logging
+  driver: "json-file"
+  options:
+    max-file: "5"
+    max-size: 10m
+
+services:
+  dummy-service:
+    image: dummy_service:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    logging: *logging
+
+  zookeeper-dv:
+    image: confluentinc/cp-zookeeper:5.4.1
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2182
+      ZOOKEEPER_TICK_TIME: 2000
+      TZ: America/Argentina/Buenos_Aires
+    logging: *logging
+    restart: unless-stopped
+
+  message-broker:
+    image: confluentinc/cp-kafka:5.4.1
+    ports:
+      - "9093:9093"
+    depends_on:
+      - zookeeper-dv
+    environment:
+      TZ: America/Argentina/Buenos_Aires
+      KAFKA_BROKER_ID: 1
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://message-broker:9092, OUTSIDE://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT, OUTSIDE:PLAINTEXT
+      KAFKA_LISTENERS: INSIDE://0.0.0.0:9092, OUTSIDE://0.0.0.0:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-dv:2182
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    logging: *logging
+    restart: unless-stopped
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop
+    restart: unless-stopped
+    ports:
+      - "9001:9000"
+    depends_on:
+      - message-broker
+    environment:
+      KAFKA_BROKERCONNECT: "message-broker:9092"
+      TZ: America/Argentina/Buenos_Aires
+    logging: *logging
+
+networks:
+  default:
+    external:
+      name: $NETWORK_NAME
